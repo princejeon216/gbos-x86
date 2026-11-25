@@ -1,0 +1,43 @@
+name: Build gbos-x86
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free up extra disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/lib/android || true
+          df -h
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run build.sh
+        run: |
+          chmod +x build.sh
+          printf "1\ny\n" | sudo ./build.sh
+
+      - name: List generated files
+        run: |
+          ls -lh . dist out build 2>/dev/null || true
+          find . -maxdepth 3 \( -name "*.img" -o -name "*.bin" -o -name "*.iso" -o -name "*.zip" \) -exec ls -lh {} +
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gbos-x86-build
+          path: |
+            dist/*
+            out/*
+            *.img
+            *.bin
+            *.iso
+            *.zip
+          if-no-files-found: ignore
+          
